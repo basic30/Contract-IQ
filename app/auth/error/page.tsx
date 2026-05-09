@@ -1,50 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Navbar from "@/components/Navbar";
 
 export default function AuthErrorPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
-            <AlertTriangle className="w-10 h-10 text-destructive" />
-          </div>
-          
-          <h1 className="text-3xl font-bold text-foreground mb-4">
-            Authentication Error
-          </h1>
-          
-          <p className="text-muted-foreground mb-8">
-            Something went wrong during the authentication process. This could be due to an expired link or an invalid session.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild variant="outline">
-              <Link href="/">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Home
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/auth/login">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Try Again
-              </Link>
-            </Button>
-          </div>
-        </motion.div>
-      </main>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md bg-card border border-border rounded-2xl p-8 text-center shadow-sm">
+        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+          <AlertTriangle className="w-8 h-8 text-destructive" />
+        </div>
+        
+        <h1 className="text-2xl font-bold text-foreground mb-3">
+          Authentication Error
+        </h1>
+        <p className="text-muted-foreground mb-8">
+          There was a problem signing you in or verifying your email. The link may have expired or is invalid.
+        </p>
+        
+        <Button asChild className="w-full h-12">
+          <Link href="/auth/login">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Login
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }

@@ -45,13 +45,14 @@ const staggerContainer = {
   },
 };
 
+// FIX: Removed the bad import and used `as const` to tell TypeScript exactly what this is
 const floatingAnimation = {
   animate: {
     y: [-10, 10, -10],
     transition: {
       duration: 6,
       repeat: Infinity,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
     },
   },
 };
@@ -59,8 +60,10 @@ const floatingAnimation = {
 export default function LandingPage() {
   const router = useRouter();
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
-  const featuresRef = useRef(null);
-  const howItWorksRef = useRef(null);
+  
+  const featuresRef = useRef<HTMLDivElement>(null);
+  const howItWorksRef = useRef<HTMLDivElement>(null);
+  
   const featuresInView = useInView(featuresRef, { once: true, margin: "-100px" });
   const howItWorksInView = useInView(howItWorksRef, { once: true, margin: "-100px" });
 
@@ -90,7 +93,7 @@ export default function LandingPage() {
               transition={{
                 duration: 8,
                 repeat: Infinity,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
               }}
             />
             <motion.div
@@ -102,7 +105,7 @@ export default function LandingPage() {
               transition={{
                 duration: 10,
                 repeat: Infinity,
-                ease: "easeInOut",
+                ease: "easeInOut" as const,
               }}
             />
             {/* Floating particles */}
@@ -121,7 +124,7 @@ export default function LandingPage() {
                 transition={{
                   duration: 4 + i,
                   repeat: Infinity,
-                  ease: "easeInOut",
+                  ease: "easeInOut" as const,
                   delay: i * 0.5,
                 }}
               />
@@ -228,7 +231,7 @@ export default function LandingPage() {
           >
             <motion.div
               className="overflow-hidden rounded-2xl border border-border bg-surface/80 p-6 shadow-2xl backdrop-blur-sm"
-              {...floatingAnimation}
+              {...(floatingAnimation as any)}
             >
               <div className="mb-4 flex items-center gap-3">
                 <div className="h-3 w-3 rounded-full bg-risk-high" />

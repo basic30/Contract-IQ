@@ -72,8 +72,8 @@ function AnalyzePageContent() {
 
   // Check auth status and guest usage on mount
   useEffect(() => {
-    const checkAuthAndUsage = () => {
-      const user = getCurrentUser();
+    const checkAuthAndUsage = async () => {
+      const user = await getCurrentUser();
       
       if (user) {
         setUser({ id: user.id, email: user.email });

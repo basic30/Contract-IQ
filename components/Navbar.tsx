@@ -19,8 +19,8 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const user = getCurrentUser();
+    const checkAuth = async () => {
+      const user = await getCurrentUser();
       if (user) {
         setUser({ id: user.id, email: user.email });
       }

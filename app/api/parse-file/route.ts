@@ -49,7 +49,11 @@ export async function POST(request: NextRequest) {
 async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
     // Use pdf-parse for PDF extraction
-    const pdfParse = (await import("pdf-parse")).default;
+    const pdfParseModule = await import("pdf-parse");
+    
+    // Safely handle both CommonJS and ES Module resolution
+    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+    
     const data = await pdfParse(buffer);
     return data.text || "";
   } catch (error) {

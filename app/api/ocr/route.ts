@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
+export const dynamic = 'force-dynamic';
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +27,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // MOVED INSIDE THE FUNCTION: Now it only initializes when the route is actually called!
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

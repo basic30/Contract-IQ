@@ -139,16 +139,15 @@ export async function POST(request: NextRequest) {
     // If user is authenticated, save to local history
     if (userId) {
       try {
-        createRecord({
-          id: analysisId,
+        // Pass the 6 arguments individually and use 'await'
+        await createRecord(
           userId,
           contractName,
-          contractText: contractText.substring(0, 10000),
-          overallScore: report.score,
-          riskSummary: report.riskSummary,
-          clauses: report.clauses,
-          createdAt: new Date().toISOString(),
-        });
+          contractText.substring(0, 10000),
+          report.score,
+          report.riskDistribution as unknown as Record<string, unknown>,
+          report.clauses as unknown as Record<string, unknown>
+        );
       } catch (dbError) {
         // Log but don't fail the request
         console.error("Failed to save to history:", dbError);

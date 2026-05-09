@@ -1,17 +1,6 @@
 import OpenAI from "openai";
 import type { AIClauseAnalysis, RiskLevel } from "@/types";
 
-let openai: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI {
-  if (!openai) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-  }
-  return openai;
-}
-
 const SYSTEM_PROMPT = `You are an expert legal analyst specializing in contract review. Your role is to analyze contract clauses and explain them in plain English that a non-lawyer can understand.
 
 For each clause, you will:
@@ -65,7 +54,11 @@ ${ruleHint ? `Pre-scan hint from rule engine:\n${ruleHint}\n\n` : ""}Respond wit
 }`;
 
   try {
-    const client = getOpenAIClient();
+    // FIXED: Initialize OpenAI directly inside the function where it is actually used
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const response = await client.chat.completions.create({
       model: "gpt-4o",
       temperature: 0.2,

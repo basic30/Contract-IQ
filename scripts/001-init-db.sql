@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS "Analysis" (
     "inputText" TEXT NOT NULL,
     "reportJson" TEXT NOT NULL,
     "score" INTEGER NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create index for faster lookups
