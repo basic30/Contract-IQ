@@ -90,7 +90,7 @@ export default function HistoryPage() {
       // If disabling history, clear all records
       await disableHistoryForUser(user.id);
       setHistory([]);
-    }
+    } 
   };
 
   const deleteRecordItem = async (id: string) => {
