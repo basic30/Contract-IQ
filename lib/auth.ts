@@ -1,16 +1,19 @@
 import { createClient } from '@/lib/supabase';
 
-export async function signUp(email: string, password: string) {
+// 1. Updated to accept name as the first argument
+export async function signUp(name: string, email: string, password: string) {
   const supabase = createClient();
-
+  
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      // 2. Added the name to the Supabase metadata
       data: {
         full_name: name,
-        name: name,
+        name: name, 
       },
+      // 3. Added the redirect to the success page
       emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback?next=/auth/verify-success`,
     },
   });
@@ -24,11 +27,11 @@ export async function signUp(email: string, password: string) {
 
 export async function signIn(email: string, password: string) {
   const supabase = createClient();
-
+  
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
-  });
+  }); 
 
   if (error) {
     return { success: false, error: error.message };
@@ -44,10 +47,10 @@ export async function signOut() {
 
 export async function getCurrentUser() {
   const supabase = createClient();
-
+  
   // Get the currently authenticated user session from Supabase
   const { data: { user }, error } = await supabase.auth.getUser();
-
+  
   if (error || !user) return null;
 
   // Fetch the user's history preference from the 'profiles' table
@@ -59,15 +62,16 @@ export async function getCurrentUser() {
 
   return {
     id: user.id,
-    name: user.user_metadata?.full_name || user.user_metadata?.name || null,
     email: user.email,
+    // 4. Added the name extraction so the Navbar can display it
+    name: user.user_metadata?.full_name || user.user_metadata?.name || null,
     historyEnabled: profile?.history_enabled ?? true
   };
 }
 
 export async function updateHistoryPreference(userId: string, enabled: boolean) {
   const supabase = createClient();
-
+  
   const { error } = await supabase
     .from('profiles')
     .update({ history_enabled: enabled })
