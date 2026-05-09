@@ -29,7 +29,7 @@ export default function SignUpPage() {
     }
 
     try {
-      const result = await signUp(email, password);
+      const result = await signUp( name, email, password);
 
       if (!result.success) {
         setError(result.error || "Sign up failed");

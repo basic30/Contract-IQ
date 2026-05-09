@@ -15,14 +15,14 @@ interface NavbarProps {
 export function Navbar({ onHowItWorksClick }: NavbarProps) {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; email?: string; name?: string } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
       const user = await getCurrentUser();
       if (user) {
-        setUser({ id: user.id, email: user.email });
+        setUser({ id: user.id, email: user.email, name: user.name });
       }
     };
     checkAuth();
@@ -117,7 +117,7 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
                     >
                       <div className="px-3 py-2 border-b border-border mb-2">
                         <p className="text-sm font-medium text-foreground truncate">
-                          {user.email}
+                          {user.name || user.email}
                         </p>
                         <p className="text-xs text-muted-foreground">Signed in</p>
                       </div>

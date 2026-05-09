@@ -2,11 +2,15 @@ import { createClient } from '@/lib/supabase';
 
 export async function signUp(email: string, password: string) {
   const supabase = createClient();
-  
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      data: {
+        full_name: name,
+        name: name,
+      },
       emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback?next=/auth/verify-success`,
     },
   });
@@ -20,11 +24,11 @@ export async function signUp(email: string, password: string) {
 
 export async function signIn(email: string, password: string) {
   const supabase = createClient();
-  
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
-  }); 
+  });
 
   if (error) {
     return { success: false, error: error.message };
@@ -40,10 +44,10 @@ export async function signOut() {
 
 export async function getCurrentUser() {
   const supabase = createClient();
-  
+
   // Get the currently authenticated user session from Supabase
   const { data: { user }, error } = await supabase.auth.getUser();
-  
+
   if (error || !user) return null;
 
   // Fetch the user's history preference from the 'profiles' table
@@ -55,6 +59,7 @@ export async function getCurrentUser() {
 
   return {
     id: user.id,
+    name: user.user_metadata?.full_name || user.user_metadata?.name || null,
     email: user.email,
     historyEnabled: profile?.history_enabled ?? true
   };
@@ -62,7 +67,7 @@ export async function getCurrentUser() {
 
 export async function updateHistoryPreference(userId: string, enabled: boolean) {
   const supabase = createClient();
-  
+
   const { error } = await supabase
     .from('profiles')
     .update({ history_enabled: enabled })
