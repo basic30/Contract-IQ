@@ -23,7 +23,7 @@ export async function createRecord(
       clauses: clauses
     }])
     .select()
-    .single()
+    .single() 
 
   if (error) {
     console.error('Error saving history:', error)

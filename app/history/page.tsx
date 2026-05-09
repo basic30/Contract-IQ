@@ -25,7 +25,7 @@ interface AnalysisRecord {
     low: number;
   };
   created_at: string;
-}
+} 
 
 function getScoreColor(score: number) {
   if (score >= 70) return "text-emerald-500";
