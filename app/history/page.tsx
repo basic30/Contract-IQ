@@ -485,7 +485,7 @@ export default function HistoryPage() {
                 <Button
                   className="flex-1"
                   onClick={clearOldHistory}
-                  disabled={is    Deleting}
+                  disabled={isDeleting}
                 >
                   {isDeleting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
