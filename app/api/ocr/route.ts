@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 
 export const dynamic = 'force-dynamic';
 export const runtime = "nodejs";
@@ -14,48 +13,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
 
-    // Convert image to base64
     const buffer = Buffer.from(await image.arrayBuffer());
     const base64Image = buffer.toString("base64");
     const mimeType = image.type || "image/jpeg";
 
-    // Use GPT-4 Vision to extract text
-    if (!process.env.OPENAI_API_KEY) {
-      // Fallback: return a message that OCR requires API key
+    if (!process.env.PUTER_AUTH_TOKEN) {
       return NextResponse.json(
-        { error: "OCR requires OpenAI API key. Please add your OPENAI_API_KEY to use this feature." },
+        { error: "OCR requires PUTER_AUTH_TOKEN. Please add it to your environment variables." },
         { status: 400 }
       );
     }
 
-    // MOVED INSIDE THE FUNCTION: Now it only initializes when the route is actually called!
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Extract all text from this document image. Return ONLY the extracted text, preserving the original formatting and structure as much as possible. Do not add any commentary or explanations.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
+    // Direct fetch to Puter API using gpt-4o (Vision support needed for OCR)
+    const response = await fetch("https://api.puter.com/puterai/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.PUTER_AUTH_TOKEN}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o", 
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Extract all text from this document image. Return ONLY the extracted text, preserving the original formatting and structure as much as possible. Do not add any commentary or explanations.",
               },
-            },
-          ],
-        },
-      ],
-      max_tokens: 4096,
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${mimeType};base64,${base64Image}`,
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 4096,
+      })
     });
 
-    const extractedText = response.choices[0]?.message?.content;
+    if (!response.ok) {
+      throw new Error(`Puter API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const extractedText = data.choices[0]?.message?.content;
 
     if (!extractedText || extractedText.trim().length === 0) {
       return NextResponse.json(

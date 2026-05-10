@@ -15,16 +15,17 @@ import { Button } from "@/components/ui/button";
 import { getCurrentUser, updateHistoryPreference } from "@/lib/auth";
 import { getUserHistory, deleteRecord as deleteHistoryRecord, clearOldRecords, disableHistoryForUser } from "@/lib/localHistory";
 
+// FIX 1: Updated the interface to use camelCase matching lib/localHistory.ts
 interface AnalysisRecord {
   id: string;
-  contract_name: string;
-  overall_score: number;
-  risk_summary: {
+  contractName: string;
+  overallScore: number;
+  riskSummary: {
     high: number;
     medium: number;
     low: number;
   };
-  created_at: string;
+  createdAt: string;
 } 
 
 function getScoreColor(score: number) {
@@ -64,13 +65,9 @@ export default function HistoryPage() {
       
       // Load history
       const historyData = await getUserHistory(user.id);
-      setHistory(historyData.map(record => ({
-        id: record.id,
-        contract_name: record.contractName,
-        overall_score: record.overallScore,
-        risk_summary: record.riskSummary as any,
-        created_at: record.createdAt,
-      })));
+      
+      // FIX 2: Mapped the array directly to the state without mixing cases
+      setHistory(historyData as AnalysisRecord[]);
       
       setIsLoading(false);
     };
@@ -114,13 +111,7 @@ export default function HistoryPage() {
     
     // Reload history
     const historyData = await getUserHistory(user.id);
-    setHistory(historyData.map(record => ({
-      id: record.id,
-      contract_name: record.contractName,
-      overall_score: record.overallScore,
-      risk_summary: record.riskSummary as any,
-      created_at: record.createdAt,
-    })));
+    setHistory(historyData as AnalysisRecord[]);
     
     setShowClearConfirm(false);
     setIsDeleting(false);
@@ -208,19 +199,19 @@ export default function HistoryPage() {
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
                 <div className="text-2xl font-bold text-emerald-500">
-                  {history.filter(h => h.overall_score >= 70).length}
+                  {history.filter(h => h.overallScore >= 70).length}
                 </div>
                 <div className="text-sm text-muted-foreground">Safe Contracts</div>
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
                 <div className="text-2xl font-bold text-amber-500">
-                  {history.filter(h => h.overall_score >= 40 && h.overall_score < 70).length}
+                  {history.filter(h => h.overallScore >= 40 && h.overallScore < 70).length}
                 </div>
                 <div className="text-sm text-muted-foreground">Review Needed</div>
               </div>
               <div className="rounded-xl border border-border bg-card p-4">
                 <div className="text-2xl font-bold text-red-500">
-                  {history.filter(h => h.overall_score < 40).length}
+                  {history.filter(h => h.overallScore < 40).length}
                 </div>
                 <div className="text-sm text-muted-foreground">High Risk</div>
               </div>
@@ -269,29 +260,30 @@ export default function HistoryPage() {
                   
                   <div className="flex items-center gap-4">
                     {/* Score */}
-                    <div className={`w-14 h-14 rounded-xl ${getScoreBg(record.overall_score)} flex items-center justify-center shrink-0`}>
-                      <span className={`text-xl font-bold ${getScoreColor(record.overall_score)}`}>
-                        {record.overall_score}
+                    {/* FIX 3: Updated all variables to use camelCase */}
+                    <div className={`w-14 h-14 rounded-xl ${getScoreBg(record.overallScore)} flex items-center justify-center shrink-0`}>
+                      <span className={`text-xl font-bold ${getScoreColor(record.overallScore)}`}>
+                        {record.overallScore}
                       </span>
                     </div>
                     
                     {/* Details */}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                        {record.contract_name}
+                        {record.contractName}
                       </h3>
                       <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />
-                          {formatDate(record.created_at)}
+                          {formatDate(record.createdAt)}
                         </span>
                         <span className="flex items-center gap-1">
                           <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                          {record.risk_summary.high} high risk
+                          {record.riskSummary?.high || 0} high risk
                         </span>
                         <span className="flex items-center gap-1">
                           <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
-                          {record.risk_summary.medium} medium
+                          {record.riskSummary?.medium || 0} medium
                         </span>
                       </div>
                     </div>
@@ -493,7 +485,7 @@ export default function HistoryPage() {
                 <Button
                   className="flex-1"
                   onClick={clearOldHistory}
-                  disabled={isDeleting}
+                  disabled={is    Deleting}
                 >
                   {isDeleting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
