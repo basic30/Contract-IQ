@@ -79,3 +79,17 @@ export async function updateHistoryPreference(userId: string, enabled: boolean) 
 
   return !error;
 }
+
+export async function updateUserProfile(name: string) {
+  const supabase = createClient();
+  const { error } = await supabase.auth.updateUser({
+    data: { full_name: name, name: name }
+  });
+  return { success: !error, error: error?.message };
+}
+
+export async function updateUserPassword(password: string) {
+  const supabase = createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  return { success: !error, error: error?.message };
+}

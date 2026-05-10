@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, FileText, FileCode, Loader2, AlertCircle, 
-  Camera, FileType, X, LogIn, UserPlus 
+  Camera, FileType, X, LogIn, UserPlus, CheckCircle2, Circle
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
@@ -19,11 +19,11 @@ import { Button } from "@/components/ui/button";
 type InputTab = "upload" | "paste" | "sample";
 
 const loadingMessages = [
-  "Parsing clauses...",
-  "Running rule detection...",
-  "Consulting AI...",
-  "Computing risk score...",
-  "Building your report...",
+  "Extracting and formatting text...",
+  "Applying structural rules...",
+  "Consulting Puter AI for risk analysis...",
+  "Computing final liability score...",
+  "Building comprehensive report...",
 ];
 
 const GUEST_USAGE_LIMIT = 3;
@@ -381,148 +381,187 @@ function AnalyzePageContent() {
             ))}
           </motion.div>
 
-          {/* Input Area */}
+          {/* Input Area / Loading Animation */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="rounded-xl border border-border bg-card p-6"
+            className="rounded-xl border border-border bg-card p-6 min-h-[350px] flex flex-col justify-center"
           >
-            <AnimatePresence mode="wait">
-              {activeTab === "upload" && (
-                <motion.div
-                  key="upload"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div
-                    onDrop={handleDrop}
-                    onDragOver={(e) => e.preventDefault()}
-                    className="flex min-h-48 flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-background p-8 transition-colors hover:border-primary/50"
-                  >
-                    {isParsingFile ? (
-                      <div className="text-center">
-                        <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-primary" />
-                        <p className="font-medium text-foreground">Extracting text from document...</p>
-                        <p className="mt-1 text-sm text-muted-foreground">This may take a moment</p>
-                      </div>
-                    ) : file ? (
-                      <div className="text-center">
-                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                          <FileType className="h-6 w-6 text-primary" />
-                        </div>
-                        <p className="font-medium text-foreground">{file.name}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                          {pastedText && ` • ${pastedText.length.toLocaleString()} characters extracted`}
-                        </p>
-                        <button
-                          onClick={() => {
-                            setFile(null);
-                            setPastedText("");
-                          }}
-                          className="mt-3 inline-flex items-center gap-1 text-sm text-destructive hover:underline"
-                        >
-                          <X className="h-3 w-3" />
-                          Remove file
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <Upload className="mb-4 h-10 w-10 text-muted-foreground" />
-                        <p className="text-center text-foreground">
-                          Drag and drop your file here, or{" "}
-                          <label className="cursor-pointer text-primary hover:underline">
-                            browse
-                            <input
-                              type="file"
-                              accept=".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain"
-                              onChange={handleFileChange}
-                              className="hidden"
-                            />
-                          </label>
-                        </p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          PDF, DOCX, DOC, or TXT files up to 10MB
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-
-              {activeTab === "paste" && (
-                <motion.div
-                  key="paste"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {/* Camera scan button */}
-                  <div className="mb-4 flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Paste contract text or scan a document
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowCameraScanner(true)}
-                      className="gap-2"
+            {isLoading ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-8"
+              >
+                <div className="relative mb-8 flex h-20 w-20 items-center justify-center">
+                  <Loader2 className="absolute inset-0 h-full w-full animate-spin text-primary/20" />
+                  <div className="absolute inset-2 animate-spin rounded-full border-t-2 border-primary" style={{ animationDuration: '2s' }} />
+                  <FileText className="h-8 w-8 text-primary" />
+                </div>
+                
+                <div className="w-full max-w-sm space-y-4">
+                  {loadingMessages.map((msg, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`flex items-center gap-4 transition-all duration-500 ${
+                        idx === loadingMessageIndex 
+                          ? 'opacity-100 translate-x-2' 
+                          : idx < loadingMessageIndex 
+                            ? 'opacity-50' 
+                            : 'opacity-20'
+                      }`}
                     >
-                      <Camera className="h-4 w-4" />
-                      Scan with Camera
-                    </Button>
-                  </div>
-                  
-                  <textarea
-                    value={pastedText}
-                    onChange={(e) => setPastedText(e.target.value)}
-                    placeholder="Paste your contract text here..."
-                    maxLength={50000}
-                    className="min-h-72 w-full resize-none rounded-xl border border-border bg-background p-4 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>
-                      {pastedText.length < 50 && pastedText.length > 0 && (
-                        <span className="text-amber-500">
-                          Need at least 50 characters ({50 - pastedText.length} more)
-                        </span>
+                      {idx < loadingMessageIndex ? (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                      ) : idx === loadingMessageIndex ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
                       )}
-                    </span>
-                    <span>{pastedText.length.toLocaleString()} / 50,000 characters</span>
-                  </div>
-                </motion.div>
-              )}
-
-              {activeTab === "sample" && (
-                <motion.div
-                  key="sample"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="rounded-xl border border-border bg-background p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <FileCode className="h-5 w-5 text-primary" />
-                      <span className="font-medium text-foreground">
-                        Sample Freelance Service Agreement
+                      <span className={`text-sm ${idx === loadingMessageIndex ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                        {msg}
                       </span>
                     </div>
-                    <p className="line-clamp-6 font-mono text-sm text-muted-foreground">
-                      {sampleContract.slice(0, 500)}...
-                    </p>
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      This sample contract contains various risk scenarios for
-                      demonstration purposes.
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <AnimatePresence mode="wait">
+                {activeTab === "upload" && (
+                  <motion.div
+                    key="upload"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={(e) => e.preventDefault()}
+                      className="flex min-h-48 flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-background p-8 transition-colors hover:border-primary/50"
+                    >
+                      {isParsingFile ? (
+                        <div className="text-center">
+                          <Loader2 className="mx-auto mb-4 h-10 w-10 animate-spin text-primary" />
+                          <p className="font-medium text-foreground">Extracting text from document...</p>
+                          <p className="mt-1 text-sm text-muted-foreground">This may take a moment</p>
+                        </div>
+                      ) : file ? (
+                        <div className="text-center">
+                          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                            <FileType className="h-6 w-6 text-primary" />
+                          </div>
+                          <p className="font-medium text-foreground">{file.name}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                            {pastedText && ` • ${pastedText.length.toLocaleString()} characters extracted`}
+                          </p>
+                          <button
+                            onClick={() => {
+                              setFile(null);
+                              setPastedText("");
+                            }}
+                            className="mt-3 inline-flex items-center gap-1 text-sm text-destructive hover:underline"
+                          >
+                            <X className="h-3 w-3" />
+                            Remove file
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="mb-4 h-10 w-10 text-muted-foreground" />
+                          <p className="text-center text-foreground">
+                            Drag and drop your file here, or{" "}
+                            <label className="cursor-pointer text-primary hover:underline">
+                              browse
+                              <input
+                                type="file"
+                                accept=".pdf,.docx,.doc,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,text/plain"
+                                onChange={handleFileChange}
+                                className="hidden"
+                              />
+                            </label>
+                          </p>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            PDF, DOCX, DOC, or TXT files up to 10MB
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "paste" && (
+                  <motion.div
+                    key="paste"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Paste contract text or scan a document
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowCameraScanner(true)}
+                        className="gap-2"
+                      >
+                        <Camera className="h-4 w-4" />
+                        Scan with Camera
+                      </Button>
+                    </div>
+                    
+                    <textarea
+                      value={pastedText}
+                      onChange={(e) => setPastedText(e.target.value)}
+                      placeholder="Paste your contract text here..."
+                      maxLength={50000}
+                      className="min-h-72 w-full resize-none rounded-xl border border-border bg-background p-4 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+                      <span>
+                        {pastedText.length < 50 && pastedText.length > 0 && (
+                          <span className="text-amber-500">
+                            Need at least 50 characters ({50 - pastedText.length} more)
+                          </span>
+                        )}
+                      </span>
+                      <span>{pastedText.length.toLocaleString()} / 50,000 characters</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "sample" && (
+                  <motion.div
+                    key="sample"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="rounded-xl border border-border bg-background p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <FileCode className="h-5 w-5 text-primary" />
+                        <span className="font-medium text-foreground">
+                          Sample Freelance Service Agreement
+                        </span>
+                      </div>
+                      <p className="line-clamp-6 font-mono text-sm text-muted-foreground">
+                        {sampleContract.slice(0, 500)}...
+                      </p>
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        This sample contract contains various risk scenarios for
+                        demonstration purposes.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
           </motion.div>
 
           {/* Error Message */}

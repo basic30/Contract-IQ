@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Scale, Menu, X, Sparkles, History, User, LogOut, LogIn } from "lucide-react";
+// Added Settings icon to the import
+import { Scale, Menu, X, Sparkles, History, User, LogOut, LogIn, Settings } from "lucide-react";
 import { getCurrentUser, signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -121,6 +122,17 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
                         </p>
                         <p className="text-xs text-muted-foreground">Signed in</p>
                       </div>
+                      
+                      {/* Added Settings Link */}
+                      <Link
+                        href="/settings"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Settings
+                      </Link>
+                      
                       <Link
                         href="/history"
                         onClick={() => setShowUserMenu(false)}
@@ -201,14 +213,24 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
               )}
               
               {user && (
-                <Link
-                  href="/history"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground flex items-center gap-2"
-                >
-                  <History className="h-4 w-4" />
-                  History
-                </Link>
+                <>
+                  <Link
+                    href="/settings"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Link>
+                  <Link
+                    href="/history"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground flex items-center gap-2"
+                  >
+                    <History className="h-4 w-4" />
+                    History
+                  </Link>
+                </>
               )}
               
               <Link
@@ -223,7 +245,7 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
               {user ? (
                 <div className="mt-2 border-t border-border pt-4">
                   <p className="px-4 text-sm text-muted-foreground truncate mb-2">
-                    {user.email}
+                    {user.name || user.email}
                   </p>
                   <button
                     onClick={() => {
