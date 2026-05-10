@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+// @ts-ignore
+import pdfParse from "pdf-parse";
+// @ts-ignore
+import mammoth from "mammoth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -48,9 +52,7 @@ export async function POST(request: NextRequest) {
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
-    // FIX: Used require() instead of dynamic import for flawless Next.js bundling
-    const pdfParse = require("pdf-parse");
-    
+    // The module is now safely imported at the top of the file!
     const data = await pdfParse(buffer);
     return data.text || "";
   } catch (error) {
@@ -61,9 +63,7 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
   try {
-    // FIX: Also updated mammoth to use require() for consistency and stability
-    const mammoth = require("mammoth");
-    
+    // Mammoth is also imported at the top of the file now
     const result = await mammoth.extractRawText({ buffer });
     return result.value || "";
   } catch (error) {

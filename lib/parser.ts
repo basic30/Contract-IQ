@@ -1,3 +1,5 @@
+// @ts-ignore
+import pdfParse from "pdf-parse";
 /**
  * Contract text parser that splits raw contract text into individual clauses
  */
@@ -170,12 +172,6 @@ function cleanClause(clause: string): string {
  * Extract text from a PDF buffer using pdf-parse
  */
 export async function parsePdfBuffer(buffer: Buffer): Promise<string> {
-  // Dynamic import to avoid bundling issues
-  const pdfParseModule = await import("pdf-parse");
-  
-  // Safely handle both CommonJS and ES Module resolution
-  const pdfParse = (pdfParseModule as any).default || pdfParseModule;
-
   const data = await pdfParse(buffer);
-  return data.text;
+  return data.text || "";
 }
