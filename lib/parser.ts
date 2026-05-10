@@ -136,11 +136,29 @@ function cleanClause(clause: string): string {
 }
 
 /**
- * Extract text from a PDF buffer using pdf-parse
+ * Extract text from a PDF buffer using pdf2json
  */
 export async function parsePdfBuffer(buffer: Buffer): Promise<string> {
-  // Safe, localized require inside the function
-  const pdfParse = require("pdf-parse");
-  const data = await pdfParse(buffer);
-  return data.text || "";
+  return new Promise((resolve, reject) => {
+    try {
+      const PDFParser = require("pdf2json");
+      const pdfParser = new PDFParser(null, 1);
+      
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
+        reject(new Error("Failed to parse PDF"));
+      });
+      
+      pdfParser.on("pdfParser_dataReady", () => {
+        let text = pdfParser.getRawTextContent();
+        try {
+          text = decodeURIComponent(text);
+        } catch (e) {}
+        resolve(text || "");
+      });
+      
+      pdfParser.parseBuffer(buffer);
+    } catch (err) {
+      reject(err);
+    }
+  });
 }

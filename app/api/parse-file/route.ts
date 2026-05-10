@@ -47,20 +47,36 @@ export async function POST(request: NextRequest) {
 }
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  try {
-    // Safe, localized require inside the function
-    const pdfParse = require("pdf-parse");
-    const data = await pdfParse(buffer);
-    return data.text || "";
-  } catch (error) {
-    console.error("PDF extraction error:", error);
-    throw new Error("Failed to extract text from PDF");
-  }
+  return new Promise((resolve, reject) => {
+    try {
+      const PDFParser = require("pdf2json");
+      const pdfParser = new PDFParser(null, 1); // 1 = extract text only
+      
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
+        console.error("PDF Parser Error:", errData.parserError);
+        reject(new Error("Failed to parse PDF"));
+      });
+      
+      pdfParser.on("pdfParser_dataReady", () => {
+        let text = pdfParser.getRawTextContent();
+        try {
+          // pdf2json sometimes URL-encodes the output, so we safely decode it
+          text = decodeURIComponent(text);
+        } catch (e) {
+          // If decoding fails, we just fall back to the raw text
+        }
+        resolve(text || "");
+      });
+      
+      pdfParser.parseBuffer(buffer);
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
   try {
-    // Safe, localized require inside the function
     const mammoth = require("mammoth");
     const result = await mammoth.extractRawText({ buffer });
     return result.value || "";
