@@ -48,11 +48,8 @@ export async function POST(request: NextRequest) {
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
-    // Use pdf-parse for PDF extraction
-    const pdfParseModule = await import("pdf-parse");
-    
-    // Safely handle both CommonJS and ES Module resolution
-    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+    // FIX: Used require() instead of dynamic import for flawless Next.js bundling
+    const pdfParse = require("pdf-parse");
     
     const data = await pdfParse(buffer);
     return data.text || "";
@@ -64,8 +61,9 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
   try {
-    // Use mammoth for DOCX extraction
-    const mammoth = await import("mammoth");
+    // FIX: Also updated mammoth to use require() for consistency and stability
+    const mammoth = require("mammoth");
+    
     const result = await mammoth.extractRawText({ buffer });
     return result.value || "";
   } catch (error) {

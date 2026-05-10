@@ -92,3 +92,20 @@ export async function disableHistoryForUser(userId: string) {
 
   return !error
 }
+
+export async function getRecordById(id: string) {
+  const supabase = createClient()
+  
+  const { data, error } = await supabase
+    .from('analysis_history')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    console.error('Error fetching record by ID:', error)
+    return null
+  }
+
+  return data
+}
