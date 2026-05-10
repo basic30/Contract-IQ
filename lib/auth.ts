@@ -88,8 +88,34 @@ export async function updateUserProfile(name: string) {
   return { success: !error, error: error?.message };
 }
 
-export async function updateUserPassword(password: string) {
+export async function updatePasswordWithVerification(email: string, oldPassword: string, newPassword: string) {
   const supabase = createClient();
-  const { error } = await supabase.auth.updateUser({ password });
+  
+  // 1. Verify old password by attempting a background sign-in
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password: oldPassword,
+  });
+
+  if (signInError) {
+    return { success: false, error: "Incorrect current password." };
+  }
+
+  // 2. If successful, update to the new password
+  const { error: updateError } = await supabase.auth.updateUser({ 
+    password: newPassword 
+  });
+
+  return { success: !updateError, error: updateError?.message };
+}
+
+export async function resetPasswordForEmail(email: string) {
+  const supabase = createClient();
+  
+  // Sends the user a password reset email using the template you created earlier
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback?next=/settings`,
+  });
+  
   return { success: !error, error: error?.message };
 }
