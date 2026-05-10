@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-// @ts-ignore
-import pdfParse from "pdf-parse";
-// @ts-ignore
-import mammoth from "mammoth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -52,7 +48,8 @@ export async function POST(request: NextRequest) {
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
-    // The module is now safely imported at the top of the file!
+    // Safe, localized require inside the function
+    const pdfParse = require("pdf-parse");
     const data = await pdfParse(buffer);
     return data.text || "";
   } catch (error) {
@@ -63,7 +60,8 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
   try {
-    // Mammoth is also imported at the top of the file now
+    // Safe, localized require inside the function
+    const mammoth = require("mammoth");
     const result = await mammoth.extractRawText({ buffer });
     return result.value || "";
   } catch (error) {

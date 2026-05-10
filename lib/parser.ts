@@ -1,5 +1,3 @@
-// @ts-ignore
-import pdfParse from "pdf-parse";
 /**
  * Contract text parser that splits raw contract text into individual clauses
  */
@@ -26,30 +24,22 @@ export function parseContractText(text: string): string[] {
 
   // Split by various legal markers and section patterns
   const splitPatterns = [
-    // Numbered sections: 1., 2., 1.1, 1.2.3, etc.
     /(?=\n\s*\d+(?:\.\d+)*\s*[.)]?\s+[A-Z])/g,
-    // ALL-CAPS headings
     /(?=\n\s*[A-Z][A-Z\s]{3,}(?:\n|:))/g,
-    // Legal markers
     /(?=\n\s*(?:WHEREAS|NOW,?\s*THEREFORE|IN WITNESS WHEREOF|ARTICLE|SECTION))/gi,
-    // Double newlines (paragraph breaks)
     /\n\s*\n/g,
   ];
 
-  // First, try splitting by numbered sections
   let clauses = splitByNumberedSections(normalizedText);
 
-  // If we don't get enough clauses, try other patterns
   if (clauses.length < 3) {
     clauses = splitByParagraphs(normalizedText);
   }
 
-  // Process and filter clauses
   clauses = clauses
     .map((clause) => cleanClause(clause))
     .filter((clause) => clause.length >= MIN_CLAUSE_LENGTH);
 
-  // Sub-split long clauses
   clauses = clauses.flatMap((clause) => {
     if (clause.length > MAX_CLAUSE_LENGTH) {
       return splitLongClause(clause);
@@ -57,18 +47,12 @@ export function parseContractText(text: string): string[] {
     return [clause];
   });
 
-  // Filter again after sub-splitting
   clauses = clauses.filter((clause) => clause.length >= MIN_CLAUSE_LENGTH);
 
-  // Cap at max clauses
   return clauses.slice(0, MAX_CLAUSES);
 }
 
-/**
- * Split text by numbered section patterns
- */
 function splitByNumberedSections(text: string): string[] {
-  // Match sections starting with numbers like "1.", "1.1", "2.3.4"
   const sectionRegex = /(?:^|\n)(\d+(?:\.\d+)*\.?\s+)/;
   const parts = text.split(sectionRegex);
 
@@ -79,9 +63,7 @@ function splitByNumberedSections(text: string): string[] {
     const part = parts[i];
     if (!part) continue;
 
-    // Check if this part is a section number
     if (/^\d+(?:\.\d+)*\.?\s*$/.test(part.trim())) {
-      // Save previous clause if exists
       if (currentClause.trim()) {
         clauses.push(currentClause.trim());
       }
@@ -91,12 +73,10 @@ function splitByNumberedSections(text: string): string[] {
     }
   }
 
-  // Don't forget the last clause
   if (currentClause.trim()) {
     clauses.push(currentClause.trim());
   }
 
-  // If numbered splitting didn't work well, return empty to try other methods
   if (clauses.length < 3) {
     return [];
   }
@@ -104,14 +84,9 @@ function splitByNumberedSections(text: string): string[] {
   return clauses;
 }
 
-/**
- * Split text by paragraph breaks and legal markers
- */
 function splitByParagraphs(text: string): string[] {
-  // Split by double newlines
   let paragraphs = text.split(/\n\s*\n/);
 
-  // Also split by legal markers if found
   paragraphs = paragraphs.flatMap((para) => {
     const markers =
       /(?=(?:WHEREAS|NOW,?\s*THEREFORE|IN WITNESS WHEREOF|ARTICLE\s+\w+|SECTION\s+\w+))/gi;
@@ -119,7 +94,6 @@ function splitByParagraphs(text: string): string[] {
     return subParts.length > 1 ? subParts : [para];
   });
 
-  // Split by ALL-CAPS headings
   paragraphs = paragraphs.flatMap((para) => {
     const capsHeading = /(?=\n[A-Z][A-Z\s]{5,}(?:\n|$))/;
     const subParts = para.split(capsHeading);
@@ -129,11 +103,7 @@ function splitByParagraphs(text: string): string[] {
   return paragraphs;
 }
 
-/**
- * Split a long clause into smaller parts at paragraph boundaries
- */
 function splitLongClause(clause: string): string[] {
-  // Try splitting at sentence boundaries first
   const sentences = clause.split(/(?<=[.!?])\s+/);
 
   const chunks: string[] = [];
@@ -158,13 +128,10 @@ function splitLongClause(clause: string): string[] {
   return chunks;
 }
 
-/**
- * Clean up a clause string
- */
 function cleanClause(clause: string): string {
   return clause
-    .replace(/\s+/g, " ") // Normalize whitespace
-    .replace(/^\s*[-•*]\s*/, "") // Remove bullet points
+    .replace(/\s+/g, " ")
+    .replace(/^\s*[-•*]\s*/, "")
     .trim();
 }
 
@@ -172,6 +139,8 @@ function cleanClause(clause: string): string {
  * Extract text from a PDF buffer using pdf-parse
  */
 export async function parsePdfBuffer(buffer: Buffer): Promise<string> {
+  // Safe, localized require inside the function
+  const pdfParse = require("pdf-parse");
   const data = await pdfParse(buffer);
   return data.text || "";
 }
