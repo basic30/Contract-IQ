@@ -12,6 +12,7 @@ export interface Clause {
   reasoning: string;
   highlightedText: string;
   suggestion: string;
+  confidenceScore?: number;
 }
 
 // Risk distribution counts
@@ -69,4 +70,5 @@ export interface AIClauseAnalysis {
   reasoning: string;
   highlightedText: string;
   suggestion: string;
+  confidenceScore?: number;
 }

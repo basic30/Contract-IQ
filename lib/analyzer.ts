@@ -88,6 +88,7 @@ async function processClause(text: string, index: number): Promise<Clause> {
     reasoning: aiAnalysis.reasoning,
     highlightedText: aiAnalysis.highlightedText,
     suggestion: aiAnalysis.suggestion,
+    confidenceScore: aiAnalysis.confidenceScore,
   };
 }
 

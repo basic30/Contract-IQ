@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-// Added Settings icon to the import
-import { Scale, Menu, X, Sparkles, History, User, LogOut, LogIn, Settings } from "lucide-react";
+import { 
+  Scale, Menu, X, Sparkles, History, 
+  User, LogOut, LogIn, Settings, MapPin 
+} from "lucide-react";
 import { getCurrentUser, signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -64,6 +66,7 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
             >
               Home
             </Link>
+            
             {onHowItWorksClick ? (
               <button
                 onClick={handleHowItWorksClick}
@@ -79,6 +82,15 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
                 How It Works
               </Link>
             )}
+
+            {/* NEW: Legal Offices Link for Desktop */}
+            <Link
+              href="/judiciary"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground flex items-center gap-1.5"
+            >
+              <MapPin className="h-4 w-4" />
+              Legal Offices
+            </Link>
             
             {user && (
               <Link
@@ -123,7 +135,6 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
                         <p className="text-xs text-muted-foreground">Signed in</p>
                       </div>
                       
-                      {/* Added Settings Link */}
                       <Link
                         href="/settings"
                         onClick={() => setShowUserMenu(false)}
@@ -195,6 +206,7 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
               >
                 Home
               </Link>
+              
               {onHowItWorksClick ? (
                 <button
                   onClick={handleHowItWorksClick}
@@ -211,6 +223,16 @@ export function Navbar({ onHowItWorksClick }: NavbarProps) {
                   How It Works
                 </Link>
               )}
+
+              {/* NEW: Legal Offices Link for Mobile */}
+              <Link
+                href="/judiciary"
+                onClick={() => setIsMenuOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground flex items-center gap-2"
+              >
+                <MapPin className="h-4 w-4" />
+                Legal Offices
+              </Link>
               
               {user && (
                 <>
