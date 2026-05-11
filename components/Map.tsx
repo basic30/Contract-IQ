@@ -24,37 +24,32 @@ const userIcon = L.icon({
   popupAnchor: [1, -34],
 });
 
-// Helper to smoothly animate the map when the user clicks "Locate Me"
+// Helper to smoothly animate the map when the user location changes
 function MapController({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
     if (center) {
-      map.flyTo(center, 14, { animate: true, duration: 1.5 });
+      map.flyTo(center, 13, { animate: true, duration: 1.5 });
     }
   }, [center, map]);
   return null;
 }
 
-export default function Map({ userLocation, offices }: { userLocation: [number, number] | null; offices: any[] }) {
-  const defaultCenter: [number, number] = [23.9054, 87.5266];
-  const center = userLocation || defaultCenter;
-
+export default function Map({ userLocation, offices }: { userLocation: [number, number]; offices: any[] }) {
   return (
-    <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%", zIndex: 10 }}>
-      <MapController center={center} />
+    <MapContainer center={userLocation} zoom={13} style={{ height: "100%", width: "100%", zIndex: 10 }}>
+      <MapController center={userLocation} />
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       
       {/* Show User's Live Location */}
-      {userLocation && (
-        <Marker position={userLocation} icon={userIcon}>
-          <Popup className="font-semibold text-primary">📍 You are here</Popup>
-        </Marker>
-      )}
+      <Marker position={userLocation} icon={userIcon}>
+        <Popup className="font-semibold text-primary">📍 You are here</Popup>
+      </Marker>
 
-      {/* Show Nearby Offices */}
+      {/* Dynamically Render Nearby Offices from the List */}
       {offices.map((office) => (
         <Marker key={office.id} position={office.coordinates} icon={icon}>
           <Popup>
