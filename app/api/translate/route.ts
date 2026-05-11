@@ -5,37 +5,61 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const { textObj, targetLanguage } = await request.json();
+    const { textsToTranslate, targetLanguage } = await request.json();
 
-    if (!process.env.PUTER_AUTH_TOKEN) {
-      return NextResponse.json({ error: "Missing API Key" }, { status: 400 });
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("Missing GEMINI_API_KEY in environment variables");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
-    // We ask the AI to strictly return a translated JSON object
-    const prompt = `Translate the string values of this JSON object to ${targetLanguage}. Return ONLY valid JSON with the exact same keys, no markdown blocks or extra text:\n\n${JSON.stringify(textObj)}`;
+    // We ask Gemini to translate the values of the JSON object, but keep the IDs/keys intact
+    const prompt = `Translate the string values inside this JSON object into ${targetLanguage}. 
+    Return EXACTLY the same JSON structure, just with the strings translated. 
+    Do not translate the JSON keys (like explanation, reasoning, suggestion, or the ID hashes), ONLY translate the text values. 
+    Return ONLY valid JSON.
+    
+    JSON to translate:
+    ${JSON.stringify(textsToTranslate)}`;
 
-    const response = await fetch("https://api.puter.com/puterai/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.PUTER_AUTH_TOKEN}`
-      },
-      body: JSON.stringify({
-        model: "gpt-5-nano",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.0,
-        response_format: { type: "json_object" }
-      })
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{
+            role: "user",
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.1, 
+            responseMimeType: "application/json" // Forces Gemini to return a clean JSON object
+          }
+        })
+      }
+    );
 
-    if (!response.ok) throw new Error("Translation failed");
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Gemini API Error:", errorData);
+      throw new Error("Failed to fetch from Gemini");
+    }
 
     const data = await response.json();
-    const translatedObj = JSON.parse(data.choices[0]?.message?.content);
+    const translatedTextRaw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
-    return NextResponse.json({ translated: translatedObj });
+    if (!translatedTextRaw) {
+      throw new Error("No translation returned from Gemini");
+    }
+
+    // Parse the returned JSON string back into an object
+    const translatedObject = JSON.parse(translatedTextRaw);
+
+    return NextResponse.json({ translatedText: translatedObject });
   } catch (error) {
-    console.error("Translation error:", error);
+    console.error("Translation API error:", error);
     return NextResponse.json({ error: "Failed to translate" }, { status: 500 });
   }
 }

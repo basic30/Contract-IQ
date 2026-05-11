@@ -31,38 +31,6 @@ interface ScoreDelta {
   timestamp: number;
 }
 
-// RapidAPI Translation Helper
-async function translateText(text: string, toLang: string) {
-  if (!text || text === "Review with legal counsel." || text === "No changes needed") return text;
-  
-  try {
-    const response = await fetch(
-      `https://free-google-translator.p.rapidapi.com/external-api/free-google-translator?from=en&to=${toLang}&query=${encodeURIComponent(text)}`,
-      {
-        method: "POST",
-        headers: {
-          "x-rapidapi-key": "36597d5945msh5c56d647348e666p174f48jsn73c90f64478a",
-          "x-rapidapi-host": "free-google-translator.p.rapidapi.com",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ translate: "rapidapi" })
-      }
-    );
-    
-    const responseText = await response.text();
-    try {
-      const json = JSON.parse(responseText);
-      // Handles different possible formats from the translation API
-      return json.translation || json.translatedText || json.text || json.data || responseText;
-    } catch {
-      return responseText;
-    }
-  } catch (error) {
-    console.error("Translation error:", error);
-    return text;
-  }
-}
-
 export default function ReportPage({
   params,
 }: {
@@ -136,31 +104,49 @@ export default function ReportPage({
     }
   }, [scoreDelta]);
 
-  // Global Translation Handler
-  const handleLanguageChange = async (lang: string) => {
-    setTargetLang(lang);
+  // SINGLE BULK TRANSLATION REQUEST
+  const handleLanguageChange = async (langCode: string) => {
+    setTargetLang(langCode);
     
-    if (lang === "en") {
+    // If they selected English, instantly clear translations (returns to default)
+    if (langCode === "en") {
       setTranslatedClauses({});
       return;
     }
 
     setIsTranslating(true);
-    const newTranslations: Record<string, any> = {};
 
     try {
-      // Process translations in parallel for speed
-      await Promise.all(
-        clauses.map(async (clause) => {
-          const [exp, rea, sug] = await Promise.all([
-            translateText(clause.explanation, lang),
-            translateText(clause.reasoning, lang),
-            translateText(clause.suggestion, lang)
-          ]);
-          newTranslations[clause.id] = { explanation: exp, reasoning: rea, suggestion: sug };
+      // 1. Bundle all clauses into one object payload
+      const payload: Record<string, any> = {};
+      clauses.forEach((clause) => {
+        payload[clause.id] = {
+          explanation: clause.explanation,
+          reasoning: clause.reasoning,
+          suggestion: clause.suggestion === "Review with legal counsel." || clause.suggestion === "No changes needed" ? "" : clause.suggestion
+        };
+      });
+
+      // 2. Map language code to full language name for Gemini
+      const languageName = langCode === "hi" ? "Hindi" : "Bengali";
+
+      // 3. Send ONE single request to our backend
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          textsToTranslate: payload, 
+          targetLanguage: languageName 
         })
-      );
-      setTranslatedClauses(newTranslations);
+      });
+
+      if (!response.ok) throw new Error("Translation failed");
+      
+      // 4. Update the entire UI instantly
+      const data = await response.json();
+      if (data.translatedText) {
+        setTranslatedClauses(data.translatedText);
+      }
     } catch (err) {
       console.error("Failed to translate entire report:", err);
     } finally {
@@ -372,7 +358,7 @@ export default function ReportPage({
                 {/* Right Side Headers: Global Language Switcher + Filter Bar */}
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                   
-                  {/* NEW GLOBAL LANGUAGE SWITCHER */}
+                  {/* GLOBAL LANGUAGE SWITCHER */}
                   <div className="flex items-center gap-2">
                     {isTranslating && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                     <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 shadow-sm">
@@ -384,7 +370,6 @@ export default function ReportPage({
                         className="bg-transparent text-sm font-medium text-foreground focus:outline-none cursor-pointer"
                       >
                         <option value="en">English</option>
-                        <option value="es">Spanish</option>
                         <option value="hi">Hindi (हिंदी)</option>
                         <option value="bn">Bengali (বাংলা)</option>
                       </select>
