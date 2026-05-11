@@ -108,7 +108,6 @@ export default function ReportPage({
   const handleLanguageChange = async (langCode: string) => {
     setTargetLang(langCode);
     
-    // If they selected English, instantly clear translations (returns to default)
     if (langCode === "en") {
       setTranslatedClauses({});
       return;
@@ -117,7 +116,6 @@ export default function ReportPage({
     setIsTranslating(true);
 
     try {
-      // 1. Bundle all clauses into one object payload
       const payload: Record<string, any> = {};
       clauses.forEach((clause) => {
         payload[clause.id] = {
@@ -127,10 +125,8 @@ export default function ReportPage({
         };
       });
 
-      // 2. Map language code to full language name for Gemini
       const languageName = langCode === "hi" ? "Hindi" : "Bengali";
 
-      // 3. Send ONE single request to our backend
       const response = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -142,7 +138,6 @@ export default function ReportPage({
 
       if (!response.ok) throw new Error("Translation failed");
       
-      // 4. Update the entire UI instantly
       const data = await response.json();
       if (data.translatedText) {
         setTranslatedClauses(data.translatedText);
@@ -275,7 +270,6 @@ export default function ReportPage({
 
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-8 lg:flex-row">
-            {/* LEFT SIDEBAR - Score Dashboard */}
             <motion.aside
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -338,7 +332,6 @@ export default function ReportPage({
               </div>
             </motion.aside>
 
-            {/* RIGHT MAIN PANEL - Clause Analysis */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -355,10 +348,8 @@ export default function ReportPage({
                   </h2>
                 </div>
 
-                {/* Right Side Headers: Global Language Switcher + Filter Bar */}
                 <div className="flex flex-col sm:flex-row items-center gap-4">
                   
-                  {/* GLOBAL LANGUAGE SWITCHER */}
                   <div className="flex items-center gap-2">
                     {isTranslating && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                     <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 shadow-sm">
@@ -405,7 +396,6 @@ export default function ReportPage({
                 </div>
               </div>
 
-              {/* Clause Cards */}
               <motion.div
                 className="space-y-4"
                 initial="initial"
@@ -426,7 +416,7 @@ export default function ReportPage({
                       onSimulate={handleSimulate}
                       onClauseUpdate={handleClauseUpdate}
                       isHighlighted={highlightedClauseId === clause.id}
-                      translation={translatedClauses[clause.id]} // Passed down globally
+                      translation={translatedClauses[clause.id]} 
                     />
                   ))}
                 </AnimatePresence>

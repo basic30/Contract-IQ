@@ -16,7 +16,7 @@ interface ClauseCardProps {
   onSimulate?: (clauseId: string, newText: string) => Promise<SimulateResponse>;
   onClauseUpdate?: (clause: Clause) => void;
   isHighlighted?: boolean;
-  // NEW: Accept global translations from the parent
+  // This prop allows the global page to inject the translated text into the card!
   translation?: { explanation?: string; reasoning?: string; suggestion?: string };
 }
 

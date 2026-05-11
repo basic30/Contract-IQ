@@ -12,11 +12,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
 
-    // We ask Gemini to translate the values of the JSON object, but keep the IDs/keys intact
     const prompt = `Translate the string values inside this JSON object into ${targetLanguage}. 
     Return EXACTLY the same JSON structure, just with the strings translated. 
     Do not translate the JSON keys (like explanation, reasoning, suggestion, or the ID hashes), ONLY translate the text values. 
-    Return ONLY valid JSON.
+    Return ONLY valid JSON without any markdown formatting, code blocks, or backticks.
     
     JSON to translate:
     ${JSON.stringify(textsToTranslate)}`;
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
           }],
           generationConfig: {
             temperature: 0.1, 
-            responseMimeType: "application/json" // Forces Gemini to return a clean JSON object
+            responseMimeType: "application/json"
           }
         })
       }
@@ -48,13 +47,15 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    const translatedTextRaw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    let translatedTextRaw = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
     if (!translatedTextRaw) {
       throw new Error("No translation returned from Gemini");
     }
 
-    // Parse the returned JSON string back into an object
+    // CRITICAL FIX: Aggressively strip markdown backticks in case Gemini sneaks them in
+    translatedTextRaw = translatedTextRaw.replace(/^```json/i, "").replace(/^```/i, "").replace(/```$/i, "").trim();
+
     const translatedObject = JSON.parse(translatedTextRaw);
 
     return NextResponse.json({ translatedText: translatedObject });
