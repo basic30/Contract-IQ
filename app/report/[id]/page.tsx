@@ -107,7 +107,7 @@ export default function ReportPage({
   // SINGLE BULK TRANSLATION REQUEST
   const handleLanguageChange = async (langCode: string) => {
     setTargetLang(langCode);
-    
+
     if (langCode === "en") {
       setTranslatedClauses({});
       return;
@@ -130,14 +130,14 @@ export default function ReportPage({
       const response = await fetch("/api/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          textsToTranslate: payload, 
-          targetLanguage: languageName 
+        body: JSON.stringify({
+          textsToTranslate: payload,
+          targetLanguage: languageName
         })
       });
 
       if (!response.ok) throw new Error("Translation failed");
-      
+
       const data = await response.json();
       if (data.translatedText) {
         setTranslatedClauses(data.translatedText);
@@ -284,11 +284,10 @@ export default function ReportPage({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className={`absolute -right-2 top-4 rounded-full px-3 py-1 text-sm font-bold ${
-                          scoreDelta.value > 0
+                        className={`absolute -right-2 top-4 rounded-full px-3 py-1 text-sm font-bold ${scoreDelta.value > 0
                             ? "bg-risk-low/20 text-risk-low"
                             : "bg-risk-high/20 text-risk-high"
-                        }`}
+                          }`}
                       >
                         {scoreDelta.value > 0 ? "+" : ""}
                         {scoreDelta.value}
@@ -349,7 +348,7 @@ export default function ReportPage({
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4">
-                  
+
                   <div className="flex items-center gap-2">
                     {isTranslating && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                     <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 shadow-sm">
@@ -360,9 +359,8 @@ export default function ReportPage({
                         disabled={isTranslating}
                         className="bg-transparent text-sm font-medium text-foreground focus:outline-none cursor-pointer"
                       >
-                        <option value="en">English</option>
-                        <option value="hi">Hindi (हिंदी)</option>
-                        
+                        <option value="en" className="bg-background text-foreground">English</option>
+                        <option value="hi" className="bg-background text-foreground">Hindi (हिंदी)</option>
                       </select>
                     </div>
                   </div>
@@ -372,11 +370,10 @@ export default function ReportPage({
                       <button
                         key={filter.id}
                         onClick={() => setActiveFilter(filter.id)}
-                        className={`relative rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                          activeFilter === filter.id
+                        className={`relative rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeFilter === filter.id
                             ? "text-foreground"
                             : "text-text-secondary hover:text-foreground"
-                        }`}
+                          }`}
                       >
                         {activeFilter === filter.id && (
                           <motion.div
@@ -416,7 +413,7 @@ export default function ReportPage({
                       onSimulate={handleSimulate}
                       onClauseUpdate={handleClauseUpdate}
                       isHighlighted={highlightedClauseId === clause.id}
-                      translation={translatedClauses[clause.id]} 
+                      translation={translatedClauses[clause.id]}
                     />
                   ))}
                 </AnimatePresence>
