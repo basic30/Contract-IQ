@@ -362,7 +362,7 @@ export default function ReportPage({
                       >
                         <option value="en">English</option>
                         <option value="hi">Hindi (हिंदी)</option>
-                        <option value="bn">Bengali (বাংলা)</option>
+                        
                       </select>
                     </div>
                   </div>
