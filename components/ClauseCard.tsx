@@ -30,7 +30,7 @@ export function ClauseCard({
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState<SimulateResponse | null>(null);
 
-  // New Multi-Language Translation States
+  // Multi-Language Translation States
   const [language, setLanguage] = useState("English");
   const [isTranslating, setIsTranslating] = useState(false);
   const [translation, setTranslation] = useState<{ explanation?: string; reasoning?: string; suggestion?: string } | null>(null);
@@ -52,15 +52,16 @@ export function ClauseCard({
   const handleApplyChanges = () => {
     if (!simulationResult || !onClauseUpdate) return;
     
+    // Fixed: Pulling data out of updatedClause
     onClauseUpdate({
       ...clause,
       text: editedText,
-      risk: simulationResult.newRisk,
-      intent: clause.intent,
-      explanation: simulationResult.explanation,
-      reasoning: simulationResult.reasoning,
-      suggestion: "Clause has been safely negotiated.",
-      confidenceScore: clause.confidenceScore 
+      risk: simulationResult.updatedClause.risk,
+      intent: simulationResult.updatedClause.intent,
+      explanation: simulationResult.updatedClause.explanation,
+      reasoning: simulationResult.updatedClause.reasoning,
+      suggestion: simulationResult.updatedClause.suggestion,
+      confidenceScore: simulationResult.updatedClause.confidenceScore || clause.confidenceScore 
     });
     
     setIsEditing(false);
@@ -234,7 +235,8 @@ export function ClauseCard({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-sm text-muted-foreground">New Risk Assessment:</span>
-                        <RiskBadge risk={simulationResult.newRisk} />
+                        {/* Fixed: Pulling risk out of updatedClause */}
+                        <RiskBadge risk={simulationResult.updatedClause.risk} />
                       </div>
                       <Button size="sm" onClick={handleApplyChanges} className="gap-2 bg-primary text-primary-foreground">
                         <CheckCircle2 className="w-4 h-4" />
@@ -245,11 +247,13 @@ export function ClauseCard({
                     <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-border">
                       <div className="space-y-1">
                         <span className="text-xs font-medium text-muted-foreground">Updated Explanation</span>
-                        <p className="text-sm text-foreground">{simulationResult.explanation}</p>
+                        {/* Fixed: Pulling explanation out of updatedClause */}
+                        <p className="text-sm text-foreground">{simulationResult.updatedClause.explanation}</p>
                       </div>
                       <div className="space-y-1">
                         <span className="text-xs font-medium text-muted-foreground">Updated Reasoning</span>
-                        <p className="text-sm text-foreground">{simulationResult.reasoning}</p>
+                        {/* Fixed: Pulling reasoning out of updatedClause */}
+                        <p className="text-sm text-foreground">{simulationResult.updatedClause.reasoning}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -265,7 +269,6 @@ export function ClauseCard({
                       What it means
                     </h4>
                     <p className="text-sm text-foreground leading-relaxed">
-                      {/* Uses translated text if available, defaults to English */}
                       {translation?.explanation || clause.explanation}
                     </p>
                   </div>
