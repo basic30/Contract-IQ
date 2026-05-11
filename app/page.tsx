@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, useInView } from "framer-motion";
@@ -26,145 +26,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { HowItWorksModal } from "@/components/HowItWorksModal";
-
-// --- Background Animation Component ---
-function CelestialBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let particles: Particle[] = [];
-    let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    let animationFrameId: number;
-
-    const resizeCanvas = () => {
-      const parent = canvas.parentElement;
-      if (parent) {
-        canvas.width = parent.clientWidth;
-        canvas.height = parent.clientHeight;
-      }
-    };
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-
-    class Particle {
-      x: number;
-      y: number;
-      radius: number;
-      color: string;
-      isOrbiter: boolean;
-      orbitRadius: number;
-      angle: number;
-      speed: number;
-
-      constructor(x: number, y: number, radius: number, color: string, isOrbiter = false) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-        this.color = color;
-        this.isOrbiter = isOrbiter;
-        this.orbitRadius = Math.random() * 150 + 100;
-        this.angle = Math.random() * Math.PI * 2;
-        this.speed = Math.random() * 0.02 + 0.01;
-      }
-
-      draw() {
-        if (!ctx) return;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.shadowColor = this.color;
-        ctx.shadowBlur = 15;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-
-      update(center: { x: number; y: number }) {
-        if (this.isOrbiter) {
-          this.angle += this.speed;
-          this.x = center.x + Math.cos(this.angle) * this.orbitRadius;
-          this.y = center.y + Math.sin(this.angle) * this.orbitRadius;
-        }
-        this.draw();
-      }
-    }
-
-    const centerPoint = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      targetX: canvas.width / 2,
-      targetY: canvas.height / 2,
-    };
-
-    const init = () => {
-      particles = [];
-      particles.push(
-        new Particle(centerPoint.x, centerPoint.y, 20, "rgba(255, 255, 255, 0.9)")
-      );
-      for (let i = 0; i < 50; i++) {
-        particles.push(
-          new Particle(
-            0,
-            0,
-            Math.random() * 3 + 1,
-            `hsl(${Math.random() * 60 + 200}, 70%, 60%)`,
-            true
-          )
-        );
-      }
-    };
-
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      if (!ctx || !canvas) return;
-
-      // Dark trails to create the fluid motion effect
-      ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      centerPoint.targetX = mouse.x;
-      centerPoint.targetY = mouse.y;
-      centerPoint.x += (centerPoint.targetX - centerPoint.x) * 0.05;
-      centerPoint.y += (centerPoint.targetY - centerPoint.y) * 0.05;
-
-      particles[0].x = centerPoint.x;
-      particles[0].y = centerPoint.y;
-      particles[0].draw();
-
-      for (let i = 1; i < particles.length; i++) {
-        particles[i].update(centerPoint);
-      }
-    };
-
-    init();
-    animate();
-
-    return () => {
-      window.removeEventListener("resize", resizeCanvas);
-      window.removeEventListener("mousemove", handleMouseMove);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="pointer-events-none absolute inset-0 z-0 h-full w-full opacity-90"
-    />
-  );
-}
-// --- End Background Animation ---
+import ParticlesComponent from "@/components/ui/particles-bg";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -218,10 +80,11 @@ export default function LandingPage() {
       <Navbar onHowItWorksClick={() => setIsHowItWorksOpen(true)} />
 
       <main className="flex-1">
-        {/* Hero Section (Updated with Celestial Background and Dark Mode styling) */}
-        <section className="relative overflow-hidden bg-black px-4 pb-24 pt-32 sm:px-6 lg:px-8">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden px-4 pb-24 pt-32 sm:px-6 lg:px-8">
           
-          <CelestialBackground />
+          {/* New Particles Background */}
+          <ParticlesComponent />
 
           <motion.div
             className="relative z-10 mx-auto max-w-5xl text-center"
@@ -231,7 +94,7 @@ export default function LandingPage() {
           >
             {/* Badge */}
             <motion.div variants={fadeInUp} className="mb-6 inline-flex">
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/50 bg-primary/20 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-md">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/50 bg-background/50 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-md">
                 <Sparkles className="h-4 w-4" />
                 AI-Powered Contract Intelligence
               </span>
@@ -239,7 +102,7 @@ export default function LandingPage() {
 
             <motion.h1
               variants={fadeInUp}
-              className="text-balance text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl"
+              className="text-balance text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-sm"
             >
               Understand{" "}
               <span className="relative">
@@ -247,7 +110,7 @@ export default function LandingPage() {
                   Every Clause
                 </span>
                 <motion.span
-                  className="absolute -inset-1 -z-10 block rounded-lg bg-primary/20 backdrop-blur-sm"
+                  className="absolute -inset-1 -z-10 block rounded-lg bg-background/50 backdrop-blur-sm"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
                   transition={{ delay: 0.5, duration: 0.6 }}
@@ -259,7 +122,7 @@ export default function LandingPage() {
 
             <motion.p
               variants={fadeInUp}
-              className="mx-auto mt-8 max-w-2xl text-pretty text-lg text-slate-300 sm:text-xl"
+              className="mx-auto mt-8 max-w-2xl text-pretty text-lg text-foreground/80 sm:text-xl font-medium drop-shadow-sm"
             >
               ContractIQ transforms dense legal contracts into clear,
               clause-by-clause explanations with AI-powered risk analysis. Know
@@ -286,7 +149,7 @@ export default function LandingPage() {
               </Link>
               <button
                 onClick={handleDemo}
-                className="group inline-flex h-14 items-center gap-2 rounded-2xl border-2 border-slate-700 bg-slate-900/50 px-8 text-base font-semibold text-white backdrop-blur-md transition-all hover:border-primary/50 hover:bg-slate-800"
+                className="group inline-flex h-14 items-center gap-2 rounded-2xl border-2 border-border bg-background/80 px-8 text-base font-semibold text-foreground backdrop-blur-md transition-all hover:border-primary/50 hover:bg-background"
               >
                 <Play className="h-4 w-4 text-primary" />
                 See a Demo
@@ -296,7 +159,7 @@ export default function LandingPage() {
             {/* Trust indicators */}
             <motion.div
               variants={fadeInUp}
-              className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-slate-400"
+              className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-foreground/70 drop-shadow-sm"
             >
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -315,45 +178,45 @@ export default function LandingPage() {
 
           {/* Floating preview card */}
           <motion.div
-            className="relative z-10 mx-auto mt-16 max-w-3xl"
+            className="relative z-10 mx-auto mt-16 max-w-3xl pointer-events-none"
             variants={fadeInScale}
             initial="initial"
             animate="animate"
             transition={{ delay: 0.4 }}
           >
             <motion.div
-              className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80 p-6 shadow-2xl backdrop-blur-md"
+              className="overflow-hidden rounded-2xl border border-border bg-background/80 p-6 shadow-2xl backdrop-blur-md"
               {...floatingAnimation}
             >
               <div className="mb-4 flex items-center gap-3">
                 <div className="h-3 w-3 rounded-full bg-risk-high" />
                 <div className="h-3 w-3 rounded-full bg-risk-medium" />
                 <div className="h-3 w-3 rounded-full bg-risk-low" />
-                <span className="ml-2 text-sm text-slate-400">Sample Analysis Preview</span>
+                <span className="ml-2 text-sm text-text-muted">Sample Analysis Preview</span>
               </div>
               <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-xl bg-slate-900/50 p-4 border border-slate-800">
+                <div className="flex items-center justify-between rounded-xl bg-surface/50 p-4 border border-border">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-risk-high/20">
                       <Shield className="h-5 w-5 text-risk-high" />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-200">Unlimited Liability</p>
-                      <p className="text-sm text-slate-400">Section 8.2</p>
+                      <p className="font-medium text-foreground">Unlimited Liability</p>
+                      <p className="text-sm text-text-muted">Section 8.2</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-risk-high/20 px-3 py-1 text-xs font-medium text-risk-high">
                     High Risk
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-slate-900/50 p-4 border border-slate-800">
+                <div className="flex items-center justify-between rounded-xl bg-surface/50 p-4 border border-border">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-risk-low/20">
                       <FileSearch className="h-5 w-5 text-risk-low" />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-200">Standard Payment Terms</p>
-                      <p className="text-sm text-slate-400">Section 3.1</p>
+                      <p className="font-medium text-foreground">Standard Payment Terms</p>
+                      <p className="text-sm text-text-muted">Section 3.1</p>
                     </div>
                   </div>
                   <span className="rounded-full bg-risk-low/20 px-3 py-1 text-xs font-medium text-risk-low">
