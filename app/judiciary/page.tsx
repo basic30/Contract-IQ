@@ -25,7 +25,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return (R * c).toFixed(1);
 }
 
-// Fallback mock generator (in case the area has no OSM data mapped yet)
+// Fallback mock generator
 const generateMockOffices = (lat: number, lon: number) => {
   return [
     {
@@ -67,7 +67,7 @@ export default function JudiciaryPage() {
   const [isLocating, setIsLocating] = useState(true);
   const [isFetchingOffices, setIsFetchingOffices] = useState(false);
 
-  // Function to ping OpenStreetMap for real local courts and lawyers
+  // Ping OpenStreetMap for real local courts and lawyers
   const fetchOffices = useCallback(async (lat: number, lon: number) => {
     setIsFetchingOffices(true);
     try {
@@ -109,23 +109,23 @@ export default function JudiciaryPage() {
           };
         });
         
-        // Sort by closest distance
         setOffices(results.sort((a: any, b: any) => parseFloat(a.distance) - parseFloat(b.distance)));
       } else {
         setOffices(generateMockOffices(lat, lon));
       }
     } catch (error) {
       console.error("Failed to fetch real offices:", error);
-      setOffices(generateMockOffices(lat, lon)); // Fallback if API fails
+      setOffices(generateMockOffices(lat, lon)); 
     } finally {
       setIsFetchingOffices(false);
     }
   }, []);
 
-  // Get User's Live Location
-  const locateUser = useCallback(() => {
+  // FIXED: Reliable Live Location Fetching
+  const locateUser = useCallback((isManualClick = false) => {
     setIsLocating(true);
-    if ("geolocation" in navigator) {
+    
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const lat = position.coords.latitude;
@@ -135,24 +135,41 @@ export default function JudiciaryPage() {
           setIsLocating(false);
         },
         (error) => {
-          console.error("Error obtaining location:", error);
-          // Fallback to New Delhi if user denies permission so page isn't broken
-          const fallbackLat = 28.6139; 
-          const fallbackLon = 77.2090;
+          console.warn("Geolocation error:", error);
+          
+          // Only show alerts if the user manually clicked the button, to avoid spamming them on page load
+          if (isManualClick) {
+            if (error.code === error.PERMISSION_DENIED) {
+              alert("Location permission denied. Please allow location access in your browser to see nearby offices.");
+            } else if (error.code === error.TIMEOUT) {
+              alert("Location request timed out. Please check your connection.");
+            } else {
+              alert("Unable to fetch live location. Please try again.");
+            }
+          }
+
+          // Fallback location to prevent a broken empty page
+          const fallbackLat = 22.5726; 
+          const fallbackLon = 88.3639; 
           setUserLocation([fallbackLat, fallbackLon]);
           fetchOffices(fallbackLat, fallbackLon);
           setIsLocating(false);
         },
-        { enableHighAccuracy: true, timeout: 5000 }
+        { 
+          enableHighAccuracy: false, // Changed to false: vastly improves success rate on desktop/wifi
+          timeout: 15000, // Increased to 15 seconds so it doesn't fail prematurely
+          maximumAge: 60000 // Cache the location for 60 seconds
+        }
       );
     } else {
+      if (isManualClick) alert("Geolocation is not supported by your browser or requires HTTPS.");
       setIsLocating(false);
     }
   }, [fetchOffices]);
 
-  // Trigger automatically when the page loads
   useEffect(() => {
-    locateUser();
+    // Attempt to locate automatically on page load (silently)
+    locateUser(false);
   }, [locateUser]);
 
   return (
@@ -170,16 +187,14 @@ export default function JudiciaryPage() {
               <p className="mt-2 text-muted-foreground">Automatically fetching courts, legal aid, and verified lawyers in your area.</p>
             </div>
             
-            <Button onClick={locateUser} disabled={isLocating} variant="outline" className="gap-2 shrink-0">
+            <Button onClick={() => locateUser(true)} disabled={isLocating} variant="outline" className="gap-2 shrink-0">
               {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
               {isLocating ? "Locating..." : "Refresh Live Location"}
             </Button>
           </motion.div>
 
-          {/* Two-Column Grid Layout */}
           <div className="grid gap-6 lg:grid-cols-5 h-[600px]">
             
-            {/* Left Side: Interactive Map */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }} 
               animate={{ opacity: 1, scale: 1 }}
@@ -196,7 +211,6 @@ export default function JudiciaryPage() {
               )}
             </motion.div>
 
-            {/* Right Side: Scrollable Dynamic List */}
             <motion.div 
               initial={{ opacity: 0, x: 20 }} 
               animate={{ opacity: 1, x: 0 }}
