@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronDown, ChevronUp, Edit3, MessageSquare, 
   AlertTriangle, CheckCircle2, FileText, ArrowRight, 
-  Loader2, Languages, Target 
+  Loader2, Target 
 } from "lucide-react";
 import type { Clause, SimulateResponse } from "@/types";
 import { RiskBadge } from "./RiskBadge";
@@ -16,24 +16,22 @@ interface ClauseCardProps {
   onSimulate?: (clauseId: string, newText: string) => Promise<SimulateResponse>;
   onClauseUpdate?: (clause: Clause) => void;
   isHighlighted?: boolean;
+  // NEW: Accept global translations from the parent
+  translation?: { explanation?: string; reasoning?: string; suggestion?: string };
 }
 
 export function ClauseCard({ 
   clause, 
   onSimulate, 
   onClauseUpdate,
-  isHighlighted 
+  isHighlighted,
+  translation
 }: ClauseCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(clause.text);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState<SimulateResponse | null>(null);
-
-  // Multi-Language Translation States
-  const [language, setLanguage] = useState("English");
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translation, setTranslation] = useState<{ explanation?: string; reasoning?: string; suggestion?: string } | null>(null);
 
   const handleSimulate = async () => {
     if (!onSimulate) return;
@@ -52,7 +50,6 @@ export function ClauseCard({
   const handleApplyChanges = () => {
     if (!simulationResult || !onClauseUpdate) return;
     
-    // Fixed: Pulling data out of updatedClause
     onClauseUpdate({
       ...clause,
       text: editedText,
@@ -66,43 +63,6 @@ export function ClauseCard({
     
     setIsEditing(false);
     setSimulationResult(null);
-    setTranslation(null); 
-    setLanguage("English");
-  };
-
-  // Secure Backend Translation Handler
-  const handleTranslate = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const lang = e.target.value;
-    setLanguage(lang);
-    
-    if (lang === "English") {
-      setTranslation(null);
-      return;
-    }
-
-    setIsTranslating(true);
-    try {
-      const res = await fetch("/api/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetLanguage: lang,
-          textObj: {
-            explanation: clause.explanation,
-            reasoning: clause.reasoning,
-            suggestion: clause.suggestion
-          }
-        })
-      });
-      const data = await res.json();
-      if (data.translated) {
-        setTranslation(data.translated);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsTranslating(false);
-    }
   };
 
   const highlightText = (text: string, highlight: string) => {
@@ -134,33 +94,12 @@ export function ClauseCard({
         </div>
         
         <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
-          
-          {/* Confidence Score Badge */}
           {clause.confidenceScore !== undefined && (
             <div className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
               <Target className="h-3 w-3" />
               {clause.confidenceScore}% Confidence
             </div>
           )}
-
-          {/* Language Switcher */}
-          <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-2 py-1">
-            {isTranslating ? (
-              <Loader2 className="h-3 w-3 animate-spin text-primary" />
-            ) : (
-              <Languages className="h-3 w-3 text-muted-foreground" />
-            )}
-            <select 
-              value={language} 
-              onChange={handleTranslate}
-              disabled={isTranslating}
-              className="bg-transparent text-xs text-muted-foreground focus:outline-none cursor-pointer"
-            >
-              <option value="English">English</option>
-              <option value="Hindi">हिंदी</option>
-              <option value="Bengali">বাংলা</option>
-            </select>
-          </div>
 
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
@@ -181,7 +120,6 @@ export function ClauseCard({
           >
             <div className="p-4 space-y-6">
               
-              {/* Original Text vs Edit Mode */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -224,7 +162,6 @@ export function ClauseCard({
                 )}
               </div>
 
-              {/* Simulation Result */}
               <AnimatePresence>
                 {simulationResult && isEditing && (
                   <motion.div
@@ -235,7 +172,6 @@ export function ClauseCard({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-sm text-muted-foreground">New Risk Assessment:</span>
-                        {/* Fixed: Pulling risk out of updatedClause */}
                         <RiskBadge risk={simulationResult.updatedClause.risk} />
                       </div>
                       <Button size="sm" onClick={handleApplyChanges} className="gap-2 bg-primary text-primary-foreground">
@@ -247,12 +183,10 @@ export function ClauseCard({
                     <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-border">
                       <div className="space-y-1">
                         <span className="text-xs font-medium text-muted-foreground">Updated Explanation</span>
-                        {/* Fixed: Pulling explanation out of updatedClause */}
                         <p className="text-sm text-foreground">{simulationResult.updatedClause.explanation}</p>
                       </div>
                       <div className="space-y-1">
                         <span className="text-xs font-medium text-muted-foreground">Updated Reasoning</span>
-                        {/* Fixed: Pulling reasoning out of updatedClause */}
                         <p className="text-sm text-foreground">{simulationResult.updatedClause.reasoning}</p>
                       </div>
                     </div>
@@ -260,7 +194,6 @@ export function ClauseCard({
                 )}
               </AnimatePresence>
 
-              {/* AI Analysis Sections (Hidden during simulation) */}
               {!simulationResult && (
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2 p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
@@ -285,7 +218,6 @@ export function ClauseCard({
                 </div>
               )}
 
-              {/* Suggestion Section */}
               {!simulationResult && clause.suggestion && clause.suggestion !== "Review with legal counsel." && clause.suggestion !== "No changes needed" && (
                 <div className="space-y-2 p-4 rounded-lg bg-primary/5 border border-primary/10">
                   <h4 className="text-sm font-medium text-primary flex items-center gap-2">

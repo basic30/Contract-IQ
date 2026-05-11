@@ -8,6 +8,7 @@ import {
   Clock,
   AlertTriangle,
   Loader2,
+  Languages,
 } from "lucide-react";
 import type {
   AnalysisReport,
@@ -30,6 +31,38 @@ interface ScoreDelta {
   timestamp: number;
 }
 
+// RapidAPI Translation Helper
+async function translateText(text: string, toLang: string) {
+  if (!text || text === "Review with legal counsel." || text === "No changes needed") return text;
+  
+  try {
+    const response = await fetch(
+      `https://free-google-translator.p.rapidapi.com/external-api/free-google-translator?from=en&to=${toLang}&query=${encodeURIComponent(text)}`,
+      {
+        method: "POST",
+        headers: {
+          "x-rapidapi-key": "36597d5945msh5c56d647348e666p174f48jsn73c90f64478a",
+          "x-rapidapi-host": "free-google-translator.p.rapidapi.com",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ translate: "rapidapi" })
+      }
+    );
+    
+    const responseText = await response.text();
+    try {
+      const json = JSON.parse(responseText);
+      // Handles different possible formats from the translation API
+      return json.translation || json.translatedText || json.text || json.data || responseText;
+    } catch {
+      return responseText;
+    }
+  } catch (error) {
+    console.error("Translation error:", error);
+    return text;
+  }
+}
+
 export default function ReportPage({
   params,
 }: {
@@ -49,12 +82,14 @@ export default function ReportPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
-  const [highlightedClauseId, setHighlightedClauseId] = useState<string | null>(
-    null
-  );
+  const [highlightedClauseId, setHighlightedClauseId] = useState<string | null>(null);
   const [scoreDelta, setScoreDelta] = useState<ScoreDelta | null>(null);
 
-  // Fetch report on mount
+  // Global Translation States
+  const [targetLang, setTargetLang] = useState("en");
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedClauses, setTranslatedClauses] = useState<Record<string, { explanation: string, reasoning: string, suggestion: string }>>({});
+
   useEffect(() => {
     async function fetchReport() {
       try {
@@ -63,7 +98,6 @@ export default function ReportPage({
 
         if (!response.ok) {
           if (response.status === 404) {
-            // Redirect to analyze with notification
             router.push("/analyze");
             return;
           }
@@ -75,9 +109,7 @@ export default function ReportPage({
         setScore(data.score);
         setRiskDistribution(data.riskDistribution);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load report."
-        );
+        setError(err instanceof Error ? err.message : "Failed to load report.");
       } finally {
         setIsLoading(false);
       }
@@ -86,7 +118,6 @@ export default function ReportPage({
     fetchReport();
   }, [id, router]);
 
-  // Clear highlight after delay
   useEffect(() => {
     if (highlightedClauseId) {
       const timeout = setTimeout(() => {
@@ -96,7 +127,6 @@ export default function ReportPage({
     }
   }, [highlightedClauseId]);
 
-  // Clear score delta after delay
   useEffect(() => {
     if (scoreDelta) {
       const timeout = setTimeout(() => {
@@ -106,9 +136,40 @@ export default function ReportPage({
     }
   }, [scoreDelta]);
 
+  // Global Translation Handler
+  const handleLanguageChange = async (lang: string) => {
+    setTargetLang(lang);
+    
+    if (lang === "en") {
+      setTranslatedClauses({});
+      return;
+    }
+
+    setIsTranslating(true);
+    const newTranslations: Record<string, any> = {};
+
+    try {
+      // Process translations in parallel for speed
+      await Promise.all(
+        clauses.map(async (clause) => {
+          const [exp, rea, sug] = await Promise.all([
+            translateText(clause.explanation, lang),
+            translateText(clause.reasoning, lang),
+            translateText(clause.suggestion, lang)
+          ]);
+          newTranslations[clause.id] = { explanation: exp, reasoning: rea, suggestion: sug };
+        })
+      );
+      setTranslatedClauses(newTranslations);
+    } catch (err) {
+      console.error("Failed to translate entire report:", err);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleIssueClick = useCallback((clauseId: string) => {
     setHighlightedClauseId(clauseId);
-    // Find the clause and switch filter if needed
     const clause = clauses.find((c) => c.id === clauseId);
     if (clause && activeFilter !== "all" && clause.risk !== activeFilter) {
       setActiveFilter("all");
@@ -128,11 +189,7 @@ export default function ReportPage({
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Simulation failed.");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Simulation failed.");
       return data;
     },
     [clauses]
@@ -140,15 +197,12 @@ export default function ReportPage({
 
   const handleClauseUpdate = useCallback(
     (updatedClause: Clause) => {
-      // Calculate score delta
       const oldScore = score;
 
-      // Update clauses
       setClauses((prev) =>
         prev.map((c) => (c.id === updatedClause.id ? updatedClause : c))
       );
 
-      // Recalculate score locally for immediate feedback
       const updatedClauses = clauses.map((c) =>
         c.id === updatedClause.id ? updatedClause : c
       );
@@ -161,13 +215,10 @@ export default function ReportPage({
       newScore = Math.max(0, Math.min(100, newScore));
 
       const delta = newScore - oldScore;
-      if (delta !== 0) {
-        setScoreDelta({ value: delta, timestamp: Date.now() });
-      }
+      if (delta !== 0) setScoreDelta({ value: delta, timestamp: Date.now() });
 
       setScore(newScore);
 
-      // Update risk distribution
       const newDistribution = { high: 0, medium: 0, low: 0 };
       for (const clause of updatedClauses) {
         newDistribution[clause.risk]++;
@@ -177,13 +228,7 @@ export default function ReportPage({
     [clauses, score]
   );
 
-  // Filter clauses
-  const filteredClauses =
-    activeFilter === "all"
-      ? clauses
-      : clauses.filter((c) => c.risk === activeFilter);
-
-  // Sort clauses: HIGH first, then MEDIUM, then LOW
+  const filteredClauses = activeFilter === "all" ? clauses : clauses.filter((c) => c.risk === activeFilter);
   const sortedClauses = [...filteredClauses].sort((a, b) => {
     const order: Record<RiskLevel, number> = { high: 0, medium: 1, low: 2 };
     return order[a.risk] - order[b.risk];
@@ -231,11 +276,10 @@ export default function ReportPage({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background relative">
       <Navbar />
 
       <main className="flex-1 px-4 pb-20 pt-20 sm:px-6 lg:px-8">
-        {/* Disclaimer Banner */}
         <div className="mx-auto mb-6 max-w-7xl">
           <div className="rounded-lg border border-risk-medium/30 bg-risk-medium/10 px-4 py-3 text-center text-sm text-risk-medium">
             AI-generated analysis for informational purposes only. Not legal
@@ -252,11 +296,8 @@ export default function ReportPage({
               className="w-full shrink-0 lg:sticky lg:top-24 lg:h-fit lg:w-80"
             >
               <div className="rounded-xl border border-border bg-surface p-6">
-                {/* Score Gauge */}
                 <div className="relative flex justify-center">
                   <ScoreGauge score={score} size={180} />
-
-                  {/* Score Delta Indicator */}
                   <AnimatePresence>
                     {scoreDelta && (
                       <motion.div
@@ -276,7 +317,6 @@ export default function ReportPage({
                   </AnimatePresence>
                 </div>
 
-                {/* Meta info */}
                 <div className="mt-6 flex items-center justify-center gap-4 text-sm text-text-secondary">
                   <div className="flex items-center gap-1.5">
                     <FileText className="h-4 w-4" />
@@ -290,7 +330,6 @@ export default function ReportPage({
                   </div>
                 </div>
 
-                {/* Risk Distribution */}
                 <div className="mt-6">
                   <h3 className="mb-3 text-sm font-medium text-text-secondary">
                     Risk Distribution
@@ -301,7 +340,6 @@ export default function ReportPage({
                   />
                 </div>
 
-                {/* Top Issues */}
                 <div className="mt-6">
                   <h3 className="mb-3 text-sm font-medium text-text-secondary">
                     Top Issues
@@ -321,41 +359,64 @@ export default function ReportPage({
               transition={{ delay: 0.1 }}
               className="flex-1"
             >
-              {/* Header */}
               <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-xl font-semibold text-foreground">
-                  Clause Analysis
-                  <span className="ml-2 rounded-md bg-surface-elevated px-2 py-1 text-sm font-normal text-text-secondary">
-                    {sortedClauses.length} clauses
-                  </span>
-                </h2>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Clause Analysis
+                    <span className="ml-2 rounded-md bg-surface-elevated px-2 py-1 text-sm font-normal text-text-secondary">
+                      {sortedClauses.length} clauses
+                    </span>
+                  </h2>
+                </div>
 
-                {/* Filter Bar */}
-                <div className="flex gap-1 rounded-lg bg-surface p-1">
-                  {filters.map((filter) => (
-                    <button
-                      key={filter.id}
-                      onClick={() => setActiveFilter(filter.id)}
-                      className={`relative rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                        activeFilter === filter.id
-                          ? "text-foreground"
-                          : "text-text-secondary hover:text-foreground"
-                      }`}
-                    >
-                      {activeFilter === filter.id && (
-                        <motion.div
-                          layoutId="activeFilter"
-                          className="absolute inset-0 rounded-md bg-surface-elevated"
-                          transition={{
-                            type: "spring",
-                            bounce: 0.2,
-                            duration: 0.5,
-                          }}
-                        />
-                      )}
-                      <span className="relative">{filter.label}</span>
-                    </button>
-                  ))}
+                {/* Right Side Headers: Global Language Switcher + Filter Bar */}
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  
+                  {/* NEW GLOBAL LANGUAGE SWITCHER */}
+                  <div className="flex items-center gap-2">
+                    {isTranslating && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                    <div className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.5 shadow-sm">
+                      <Languages className="h-4 w-4 text-muted-foreground" />
+                      <select
+                        value={targetLang}
+                        onChange={(e) => handleLanguageChange(e.target.value)}
+                        disabled={isTranslating}
+                        className="bg-transparent text-sm font-medium text-foreground focus:outline-none cursor-pointer"
+                      >
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="hi">Hindi (हिंदी)</option>
+                        <option value="bn">Bengali (বাংলা)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1 rounded-lg bg-surface p-1">
+                    {filters.map((filter) => (
+                      <button
+                        key={filter.id}
+                        onClick={() => setActiveFilter(filter.id)}
+                        className={`relative rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                          activeFilter === filter.id
+                            ? "text-foreground"
+                            : "text-text-secondary hover:text-foreground"
+                        }`}
+                      >
+                        {activeFilter === filter.id && (
+                          <motion.div
+                            layoutId="activeFilter"
+                            className="absolute inset-0 rounded-md bg-surface-elevated"
+                            transition={{
+                              type: "spring",
+                              bounce: 0.2,
+                              duration: 0.5,
+                            }}
+                          />
+                        )}
+                        <span className="relative">{filter.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -380,6 +441,7 @@ export default function ReportPage({
                       onSimulate={handleSimulate}
                       onClauseUpdate={handleClauseUpdate}
                       isHighlighted={highlightedClauseId === clause.id}
+                      translation={translatedClauses[clause.id]} // Passed down globally
                     />
                   ))}
                 </AnimatePresence>
@@ -412,7 +474,6 @@ function ReportSkeleton() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pt-8">
       <div className="flex flex-col gap-8 lg:flex-row">
-        {/* Sidebar skeleton */}
         <div className="w-full shrink-0 lg:w-80">
           <div className="animate-pulse rounded-xl border border-border bg-surface p-6">
             <div className="mx-auto h-44 w-44 rounded-full bg-surface-elevated" />
@@ -428,8 +489,6 @@ function ReportSkeleton() {
             </div>
           </div>
         </div>
-
-        {/* Main content skeleton */}
         <div className="flex-1">
           <div className="mb-6 flex items-center justify-between">
             <div className="h-6 w-40 animate-pulse rounded bg-surface-elevated" />
@@ -462,7 +521,7 @@ function ReportSkeleton() {
           </div>
         </div>
       </div>
-      <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-lg text-text-secondary">Loading your report...</p>
